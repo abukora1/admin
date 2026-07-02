@@ -1,0 +1,282 @@
+/* ==================== التبويبات (Tabs) في الدروس ==================== */
+
+.lesson-tabs-wrapper {
+  width: 100%;
+  margin-bottom: var(--space-6);
+}
+
+/* شريط التبويبات */
+.lesson-tabs-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lesson-tab-button {
+  flex: 1;
+  min-width: 140px;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  text-align: center;
+  position: relative;
+}
+
+.lesson-tab-button:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-2);
+}
+
+.lesson-tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background: var(--color-surface-2);
+}
+
+/* محتوى التبويبات */
+.lesson-tabs-content {
+  width: 100%;
+}
+
+.lesson-tab-pane {
+  display: none;
+  animation: fadeInTab 0.3s ease;
+}
+
+.lesson-tab-pane.active {
+  display: block;
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* محتوى الفيديو */
+.lesson-tab-pane[data-tab="video"] iframe {
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+
+/* محتوى المفكرة مع دعم HTML */
+.lesson-tab-pane[data-tab="notes"] {
+  font-size: 1.08rem;
+  line-height: 2;
+  color: var(--color-text);
+}
+
+.lesson-tab-pane[data-tab="notes"] h1 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+
+.lesson-tab-pane[data-tab="notes"] h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+
+.lesson-tab-pane[data-tab="notes"] h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.lesson-tab-pane[data-tab="notes"] h4,
+.lesson-tab-pane[data-tab="notes"] h5,
+.lesson-tab-pane[data-tab="notes"] h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.lesson-tab-pane[data-tab="notes"] p {
+  margin-bottom: var(--space-3);
+  line-height: 2;
+}
+
+.lesson-tab-pane[data-tab="notes"] ul,
+.lesson-tab-pane[data-tab="notes"] ol {
+  margin-bottom: var(--space-3);
+  padding-right: var(--space-4);
+}
+
+.lesson-tab-pane[data-tab="notes"] li {
+  margin-bottom: var(--space-2);
+  line-height: 1.8;
+}
+
+.lesson-tab-pane[data-tab="notes"] blockquote {
+  border-right: 4px solid var(--color-accent);
+  padding-right: var(--space-4);
+  padding-left: var(--space-2);
+  margin: var(--space-4) 0;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-style: italic;
+  color: var(--color-primary-dark);
+}
+
+.lesson-tab-pane[data-tab="notes"] code {
+  background: var(--color-surface-2);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: "Courier New", monospace;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+}
+
+.lesson-tab-pane[data-tab="notes"] pre {
+  background: var(--color-surface-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin-bottom: var(--space-3);
+}
+
+.lesson-tab-pane[data-tab="notes"] table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-border);
+}
+
+.lesson-tab-pane[data-tab="notes"] th,
+.lesson-tab-pane[data-tab="notes"] td {
+  padding: var(--space-2) var(--space-3);
+  text-align: right;
+  border: 1px solid var(--color-border);
+}
+
+.lesson-tab-pane[data-tab="notes"] th {
+  background: var(--color-surface-2);
+  font-weight: 600;
+}
+
+.lesson-tab-pane[data-tab="notes"] strong {
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.lesson-tab-pane[data-tab="notes"] em {
+  font-style: italic;
+}
+
+.lesson-tab-pane[data-tab="notes"] a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.lesson-tab-pane[data-tab="notes"] a:hover {
+  color: var(--color-accent);
+}
+
+.lesson-tab-pane[data-tab="notes"] img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: var(--space-4) 0;
+}
+
+/* ==================== إخفاء/إظهار التنقل السفلي ==================== */
+
+.bottom-nav {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.bottom-nav.hidden {
+  opacity: 0;
+  transform: translateY(80px);
+  pointer-events: none;
+}
+
+/* ==================== تأثيرات الحركة ==================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  .lesson-tab-button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lesson-tab-pane {
+    transition: opacity 0.3s ease;
+  }
+
+  .bottom-nav {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+}
+
+/* ==================== حالات خاصة للهاتف الذكي ==================== */
+
+@media (max-width: 640px) {
+  .lesson-tab-button {
+    min-width: 120px;
+    font-size: 0.85rem;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .lesson-tabs-bar {
+    margin-bottom: var(--space-3);
+  }
+
+  .lesson-tab-pane {
+    padding: 0;
+  }
+}
+
+/* ==================== حالات التبويبات ==================== */
+
+.lesson-tab-button:active {
+  transform: scale(0.98);
+}
+
+.lesson-tab-button:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* حالة الحاوية عندما تكون فارغة */
+.lesson-tab-pane .empty-state {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.lesson-tab-pane .empty-state .icon {
+  font-size: 2.4rem;
+  margin-bottom: var(--space-3);
+}
