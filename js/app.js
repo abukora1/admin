@@ -20,8 +20,6 @@ const appShell = $("#app-shell");
 let activeUnsubscribeTicket = null;
 let selectedMood = "😊";
 let currentTicketId = null;
-let currentLessonId = null;
-let lessonScrollTimeout = null;
 
 // ---------------------------------------------------------------
 // Toast بسيط
@@ -30,52 +28,6 @@ function toast(message, type = "info") {
   const node = el("div", { className: `toast ${type === "error" ? "error" : ""}`, text: message });
   $("#toast-root").appendChild(node);
   setTimeout(() => node.remove(), 3200);
-}
-
-// ---------------------------------------------------------------
-// إدارة إظهار/إخفاء التنقل السفلي عند التمرير
-// ---------------------------------------------------------------
-function initLessonScrollBehavior() {
-  const lessonView = $("#view-lesson");
-  const bottomNav = $(".bottom-nav");
-  let lastScrollTop = 0;
-  let isNavigationVisible = true;
-
-  lessonView.addEventListener("scroll", () => {
-    clearTimeout(lessonScrollTimeout);
-    const currentScroll = lessonView.scrollTop;
-
-    if (currentScroll > lastScrollTop && isNavigationVisible) {
-      // التمرير لأسفل → إخفاء التنقل
-      bottomNav.style.opacity = "0";
-      bottomNav.style.pointerEvents = "none";
-      bottomNav.style.transform = "translateY(80px)";
-      isNavigationVisible = false;
-    } else if (currentScroll < lastScrollTop && !isNavigationVisible) {
-      // التمرير لأعلى → إظهار التنقل
-      bottomNav.style.opacity = "1";
-      bottomNav.style.pointerEvents = "auto";
-      bottomNav.style.transform = "translateY(0)";
-      isNavigationVisible = true;
-    }
-
-    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-
-    // إظهار التنقل عند الوصول لأعلى الصفحة
-    if (currentScroll === 0) {
-      bottomNav.style.opacity = "1";
-      bottomNav.style.pointerEvents = "auto";
-      bottomNav.style.transform = "translateY(0)";
-      isNavigationVisible = true;
-    }
-  });
-
-  // إعادة تعيين عند فتح درس جديد
-  lessonView.scrollTop = 0;
-  bottomNav.style.opacity = "1";
-  bottomNav.style.pointerEvents = "auto";
-  bottomNav.style.transform = "translateY(0)";
-  isNavigationVisible = true;
 }
 
 // ---------------------------------------------------------------
@@ -135,7 +87,7 @@ $("#btn-signout").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------
-// Onboarding
+// Onboarding (مرة واحدة لكل مستخدم — تُحفظ محلياً)
 // ---------------------------------------------------------------
 const ONBOARDING_SLIDES = [
   { icon: "🧭", title: "رحلة من 4 مراحل", text: "من ما قبل الخطوبة حتى استقرار الأسرة، محتوى مخصص لكل مرحلة تمر بها." },
@@ -179,7 +131,7 @@ function finishOnboarding() {
 }
 
 // ---------------------------------------------------------------
-// حلقات المراحل
+// حلقات المراحل: تلوين الحلقة بناءً على المرحلة الحالية للمستخدم
 // ---------------------------------------------------------------
 function paintStageRings() {
   const order = ["pre_engagement", "engaged", "newlywed", "settled"];
@@ -192,7 +144,7 @@ function paintStageRings() {
 }
 
 // ---------------------------------------------------------------
-// إظهار التطبيق الرئيسي
+// إظهار التطبيق الرئيسي بعد تسجيل الدخول
 // ---------------------------------------------------------------
 async function showApp() {
   viewAuth.classList.add("hidden");
@@ -222,13 +174,13 @@ async function showApp() {
 }
 
 // ---------------------------------------------------------------
-// الراوتر
+// الراوتر (Hash-based)
 // ---------------------------------------------------------------
 const ROUTES = ["dashboard", "lesson", "journal", "support", "ticket", "profile", "admin"];
 
 function navigate(route) {
   if (!ROUTES.includes(route)) route = "dashboard";
-  if (route === "admin" && !isSupervisor()) route = "dashboard";
+  if (route === "admin" && !isSupervisor()) route = "dashboard"; // حماية: توجيه أي مستخدم عادي بعيداً عن #admin
   if (activeUnsubscribeTicket && route !== "ticket") {
     activeUnsubscribeTicket();
     activeUnsubscribeTicket = null;
@@ -277,154 +229,69 @@ function renderDashboard() {
     const done = state.progressByContentId.has(content.id);
     const card = el("div", { className: "lesson-card", attrs: { "data-id": content.id, tabindex: "0", role: "button" } }, [
       done ? el("span", { className: "badge-done", text: "✓ مكتمل" }) : null,
-      el("span", { className: "category", text: content.category || "درس" }),
+      el("span", { className: "category", text: content.category || "درس عام" }),
       el("h3", { text: content.title }),
-      el("p", { className: "excerpt", text: content.body.substring(0, 100) + "..." }),
+      el("p", { className: "excerpt", text: (content.body || "").slice(0, 90) + "…" }),
     ]);
     card.addEventListener("click", () => openLesson(content.id));
+    card.addEventListener("keypress", (e) => e.key === "Enter" && openLesson(content.id));
     list.appendChild(card);
   });
 }
 
-// ---------------------------------------------------------------
-// فتح الدرس مع التبويبات
-// ---------------------------------------------------------------
-async function openLesson(contentId) {
-  currentLessonId = contentId;
-  navigate("lesson");
+let currentLessonId = null;
 
-  const content = state.contents.find((c) => c.id === contentId);
-  if (!content) {
-    toast("لم يتم العثور على الدرس", "error");
-    return;
-  }
-
-  $("#lesson-category").textContent = content.category || "درس";
+async function openLesson(id) {
+  const content = state.contents.find((c) => c.id === id);
+  if (!content) return;
+  currentLessonId = id;
+  $("#lesson-category").textContent = content.category || "درس عام";
   $("#lesson-title").textContent = content.title;
 
-  // إنشاء عنصر التبويبات
-  const tabsContainer = el("div", { className: "lesson-tabs-wrapper" });
-  const tabsBar = el("div", { className: "lesson-tabs-bar" });
-  const tabsContent = el("div", { className: "lesson-tabs-content" });
+  const bodyEl = $("#lesson-body");
+  bodyEl.innerHTML = "";
+  bodyEl.appendChild(el("div", { className: "spinner" }));
 
-  // التبويب الأول: الفيديو
-  const videoTab = el("button", {
-    className: "lesson-tab-button active",
-    text: "🎥 الفيديو",
-    attrs: { type: "button", "data-tab": "video" },
-  });
+  const done = state.progressByContentId.has(id);
+  const btn = $("#btn-mark-complete");
+  btn.textContent = done ? "✓ تم إنهاء هذا الدرس" : "أنهيت هذا الدرس ✓";
+  btn.disabled = done;
 
-  // التبويب الثاني: المفكرة/النص
-  const notesTab = el("button", {
-    className: "lesson-tab-button",
-    text: "📝 المفكرة",
-    attrs: { type: "button", "data-tab": "notes" },
-  });
-
-  tabsBar.appendChild(videoTab);
-  tabsBar.appendChild(notesTab);
-
-  // محتوى التبويب الأول
-  const videoContent = el("div", { className: "lesson-tab-pane active", attrs: { "data-tab": "video" } });
-  if (content.video_url) {
-    const iframe = el("iframe", {
-      attrs: {
-        src: content.video_url,
-        width: "100%",
-        height: "400px",
-        frameborder: "0",
-        allowfullscreen: "allowfullscreen",
-        style: "border-radius: var(--radius-md); margin-bottom: var(--space-4);",
-      },
-    });
-    videoContent.appendChild(iframe);
-  } else {
-    videoContent.appendChild(
-      el("div", { className: "empty-state" }, [
-        el("div", { className: "icon", text: "🎬" }),
-        el("p", { text: "لا يوجد فيديو متاح لهذا الدرس." }),
-      ])
-    );
-  }
-
-  // النص الأساسي بعد الفيديو
-  const mainText = el("div", { className: "lesson-body" });
-  mainText.textContent = content.body;
-  videoContent.appendChild(mainText);
-
-  // محتوى التبويب الثاني
-  const notesContent = el("div", { className: "lesson-tab-pane", attrs: { "data-tab": "notes" } });
-  if (content.notes) {
-    // دعم HTML في المفكرة
-    notesContent.innerHTML = content.notes;
-    // تطبيق CSS مخصص على المحتوى HTML
-    notesContent.querySelectorAll("*").forEach((el) => {
-      el.style.fontFamily = "var(--font-body)";
-      el.style.fontSize = "1rem";
-      el.style.lineHeight = "1.8";
-      el.style.color = "var(--color-text)";
-      el.style.marginBottom = "var(--space-3)";
-    });
-    notesContent.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((el) => {
-      el.style.fontFamily = "var(--font-display)";
-      el.style.fontWeight = "700";
-      el.style.color = "var(--color-primary-dark)";
-      el.style.marginTop = "var(--space-4)";
-      el.style.marginBottom = "var(--space-2)";
-    });
-    notesContent.querySelectorAll("p").forEach((el) => {
-      el.style.marginBottom = "var(--space-3)";
-    });
-  } else {
-    notesContent.appendChild(
-      el("div", { className: "empty-state" }, [
-        el("div", { className: "icon", text: "📓" }),
-        el("p", { text: "لا توجد مفكرة لهذا الدرس." }),
-      ])
-    );
-  }
-
-  tabsContent.appendChild(videoContent);
-  tabsContent.appendChild(notesContent);
-
-  tabsContainer.appendChild(tabsBar);
-  tabsContainer.appendChild(tabsContent);
-
-  // إدارة تبديل التبويبات
-  videoTab.addEventListener("click", () => switchTab("video", tabsBar, tabsContent));
-  notesTab.addEventListener("click", () => switchTab("notes", tabsBar, tabsContent));
-
-  // دالة تبديل التبويب
-  function switchTab(tabName, bar, content) {
-    bar.querySelectorAll(".lesson-tab-button").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.tab === tabName);
-    });
-    content.querySelectorAll(".lesson-tab-pane").forEach((pane) => {
-      pane.classList.toggle("active", pane.dataset.tab === tabName);
-    });
-  }
-
-  // مسح المحتوى القديم وإضافة التبويبات
-  const lessonBody = $("#lesson-body");
-  lessonBody.innerHTML = "";
-  lessonBody.appendChild(tabsContainer);
-
-  // تهيئة سلوك التمرير
-  initLessonScrollBehavior();
+  navigate("lesson");
 
   try {
-    const done = state.progressByContentId.has(currentLessonId);
-    const markBtn = $("#btn-mark-complete");
-    if (done) {
-      markBtn.textContent = "✓ تم إنهاء هذا الدرس";
-      markBtn.disabled = true;
-      markBtn.classList.add("success-pulse");
+    const { sections, media } = await loadLessonDetails(id);
+    bodyEl.innerHTML = "";
+
+    if (sections.length === 0) {
+      // توافق خلفي: لا توجد فقرات بعد لهذا الدرس، اعرض النص الاحتياطي القديم
+      bodyEl.appendChild(el("p", { className: "lesson-section-paragraph", text: content.body }));
     } else {
-      markBtn.textContent = "أنهيت هذا الدرس ✓";
-      markBtn.disabled = false;
-      markBtn.classList.remove("success-pulse");
+      sections.forEach((s) => {
+        if (s.type === "header") {
+          bodyEl.appendChild(el("h3", { className: "lesson-section-header", text: s.body }));
+        } else {
+          bodyEl.appendChild(el("p", { className: "lesson-section-paragraph", text: s.body }));
+        }
+      });
+    }
+
+    if (media.length > 0) {
+      const mediaList = el("div", { className: "lesson-media-list" });
+      const icons = { youtube: "▶️", pdf: "📄", link: "🔗" };
+      media.forEach((m) => {
+        const link = el("a", {
+          className: "lesson-media-link",
+          text: `${icons[m.type] || "🔗"} ${m.title || m.url}`,
+          attrs: { href: sanitizeUrl(m.url), target: "_blank", rel: "noopener" },
+        });
+        mediaList.appendChild(link);
+      });
+      bodyEl.appendChild(mediaList);
     }
   } catch (err) {
+    bodyEl.innerHTML = "";
+    bodyEl.appendChild(el("p", { className: "lesson-section-paragraph", text: content.body }));
     toast(err.message, "error");
   }
 }
@@ -616,7 +483,7 @@ $("#btn-save-stage").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------
-// نقطة البداية
+// نقطة البداية: مراقبة حالة الجلسة
 // ---------------------------------------------------------------
 initAuthListener(async (session) => {
   if (!session) {
@@ -649,7 +516,7 @@ window.addEventListener("hashchange", () => {
 });
 
 // ---------------------------------------------------------------
-// تسجيل Service Worker
+// تسجيل Service Worker (PWA)
 // ---------------------------------------------------------------
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
